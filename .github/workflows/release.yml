@@ -1,0 +1,82 @@
+# Builds the desktop app for macOS (Apple Silicon) and Windows. A tag
+# v1.2.3 publishes both to a GitHub release; a manual run only keeps them
+# as workflow artifacts.
+name: build
+
+on:
+  push:
+    tags: ["v*"]
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  build:
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [macos-latest, windows-latest]
+    runs-on: ${{ matrix.os }}
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - name: Dependencies
+        run: python -m pip install pillow pywebview imageio-ffmpeg anthropic pyinstaller
+
+      - name: Version
+        shell: bash
+        run: |
+          v="${GITHUB_REF_NAME#v}"
+          [[ "$GITHUB_REF_TYPE" == tag ]] || v="0.0.0-dev"
+          echo "PSPTOOL_VERSION=$v" >> "$GITHUB_ENV"
+
+      - name: Native helpers, fonts, icon
+        run: |
+          python -m psptool.core.native
+          python packaging/fetch_fonts.py
+          python packaging/icon.py
+
+      - name: Build
+        run: pyinstaller packaging/psptool.spec --noconfirm
+
+      - name: Self-test and package (macOS)
+        if: runner.os == 'macOS'
+        run: |
+          dist/PSPtool.app/Contents/MacOS/PSPtool --selftest
+          mkdir dmg && cp -R dist/PSPtool.app dmg/ && ln -s /Applications dmg/Applications
+          hdiutil create -volname PSPtool -srcfolder dmg -ov -format UDZO "PSPtool-$PSPTOOL_VERSION-macos-arm64.dmg"
+
+      - name: Self-test and package (Windows)
+        if: runner.os == 'Windows'
+        shell: pwsh
+        run: |
+          $p = Start-Process dist/PSPtool/PSPtool.exe -ArgumentList "--selftest" -Wait -PassThru
+          if ($p.ExitCode -ne 0) { throw "selftest failed: $($p.ExitCode)" }
+          Compress-Archive -Path dist/PSPtool -DestinationPath "PSPtool-$env:PSPTOOL_VERSION-windows-x64.zip"
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: psptool-${{ runner.os }}
+          path: |
+            *.dmg
+            *.zip
+
+  release:
+    needs: build
+    if: github.ref_type == 'tag'
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/download-artifact@v4
+        with:
+          merge-multiple: true
+      - uses: softprops/action-gh-release@v2
+        with:
+          files: |
+            *.dmg
+            *.zip
+          generate_release_notes: true

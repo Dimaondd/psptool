@@ -1,0 +1,32 @@
+[build-system]
+requires = ["setuptools>=61"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "psptool"
+version = "0.1.0"
+description = "Unpack, translate and repack PSP game images"
+requires-python = ">=3.9"
+license = {text = "MIT"}
+dependencies = ["pillow"]
+
+[project.optional-dependencies]
+llm = ["anthropic"]
+app = ["pywebview", "imageio-ffmpeg", "anthropic"]
+build = ["pywebview", "imageio-ffmpeg", "anthropic", "pyinstaller"]
+
+[project.urls]
+Homepage = "https://github.com/Dimaondd/psptool"
+
+[project.scripts]
+psptool = "psptool.cli:main"
+
+[project.gui-scripts]
+psptool-app = "psptool.app:main"
+
+[tool.setuptools.packages.find]
+include = ["psptool*"]
+
+[tool.setuptools.package-data]
+psptool = ["ui/static/*", "games/*/data/*", "plugins/*/*.c", "plugins/*/*.swift", "core/*.c", "tools/*.swift",
+           "_native/*", "fonts/*"]

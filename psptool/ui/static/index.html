@@ -1,0 +1,108 @@
+<!doctype html>
+<html lang="ru">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>PSPtool</title>
+<link rel="preconnect" href="https://fonts.googleapis.com"><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Public+Sans:wght@400;500;600;700&family=JetBrains+Mono:wght@400&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="app.css">
+</head>
+<body>
+<header>
+  <div class="brand">
+    <!-- the mark: a PSP's screen between its two grips -->
+    <svg class="mark" viewBox="0 0 22 22" aria-hidden="true"><rect x="1" y="5" width="20" height="12" rx="6" fill="none" stroke="#ef8a32" stroke-width="1.6"/><rect x="6.5" y="8" width="9" height="6" rx="1" fill="#ef8a32"/></svg>
+    <span>PSPtool</span><span class="scope" id="scope"></span>
+  </div>
+  <nav id="tabs"></nav>
+  <div id="jobbar" class="pill" hidden></div>
+  <button id="play" class="btn" data-job hidden title="Собрать тестовый образ и запустить в эмуляторе"><span class="i" data-icon="play"></span><span>Проверить в игре</span></button>
+</header>
+<main>
+  <section id="view-project" class="view page"></section>
+
+  <section id="view-texts" class="view" hidden>
+    <aside class="side">
+      <div class="search"><span class="i" data-icon="search"></span><input id="entry-filter" type="search" placeholder="Файлы"></div>
+      <select id="entry-mode" title="Какие файлы показывать">
+        <option value="all">Все файлы</option>
+        <option value="done">Только переведённые</option>
+        <option value="checked">Только проверенные</option>
+        <option value="undone">Скрыть переведённые</option>
+        <option value="unchecked">Скрыть проверенные</option>
+      </select>
+      <ul id="entry-list" class="list"></ul>
+    </aside>
+    <div class="texts">
+      <div class="titlebar compact"><h1 id="texts-title">Текст</h1><span class="sub" id="texts-sub"></span></div>
+      <div class="toolbar">
+        <div class="search grow"><span class="i" data-icon="search"></span><input id="search" type="search" placeholder="Поиск"></div>
+        <select id="search-in" title="Где искать">
+          <option value="any">Везде</option>
+          <option value="src">Оригинал</option>
+          <option value="ref">Подсказка</option>
+          <option value="dst">Перевод</option>
+        </select>
+        <div class="seg" id="mode">
+          <button data-v="all" class="on">Все</button>
+          <button data-v="todo">Без перевода</button>
+          <button data-v="mt">LLM</button>
+          <button data-v="unchecked">Не проверено</button>
+        </div>
+        <span id="texts-status" class="muted small"></span>
+        <button id="check-entry" class="btn" hidden><span class="i" data-icon="check"></span><span>Проверить файл</span></button>
+        <button id="llm-entry" class="btn primary" data-job hidden><span class="i" data-icon="spark"></span>Перевести файл</button>
+      </div>
+      <div id="texts-job" class="jobpanel" hidden>
+        <div class="jhead">
+          <span class="jtitle"></span>
+          <div class="jbar"><i></i></div>
+          <span class="jnum muted small"></span>
+          <button class="icon-btn jtoggle" title="Журнал">▾</button>
+          <button class="icon-btn jclose" title="Закрыть"><span class="i" data-icon="close"></span></button>
+        </div>
+        <pre class="log" hidden></pre>
+      </div>
+      <div id="rows"></div>
+    </div>
+  </section>
+
+  <section id="view-textures" class="view" hidden>
+    <div class="titlebar"><h1>Текстуры</h1><span class="sub">картинки игры: оригинал, подсказка и перевод</span></div>
+    <div class="toolbar">
+      <div class="search"><span class="i" data-icon="search"></span><input id="tx-find" type="search" placeholder="Номер файла"></div>
+      <div class="seg" id="tx-mode">
+        <button data-v="ref" class="on">С текстом</button>
+        <button data-v="edited">Изменённые</button>
+        <button data-v="all">Все</button>
+      </div>
+      <span id="tx-status" class="muted small"></span>
+      <button id="tx-index" class="btn" data-job>Обновить каталог</button>
+    </div>
+    <div id="tx-pager"></div>
+    <div id="tx-grid" class="tgrid"></div>
+    <div id="tx-detail" class="modal" hidden></div>
+  </section>
+  <section id="view-hd" class="view page" hidden></section>
+  <section id="view-font" class="view page" hidden></section>
+  <section id="view-llm" class="view page" hidden></section>
+
+  <section id="view-charmap" class="view" hidden>
+    <div class="titlebar"><h1>Таблица символов</h1><span class="sub">коды шрифта игры и их знаки</span></div>
+    <div class="toolbar">
+      <div class="search"><span class="i" data-icon="search"></span><input id="cm-find" type="search" placeholder="Символ или код"></div>
+      <div class="seg" id="cm-mode">
+        <button data-v="unsure" class="on">Сомнительные</button>
+        <button data-v="icons">Значки</button>
+        <button data-v="all">Все</button>
+      </div>
+      <span id="cm-status" class="muted small"></span>
+    </div>
+    <div id="cm-pager"></div>
+    <div id="glyphs" class="glyphs"></div>
+  </section>
+</main>
+<script src="app.js"></script>
+</body>
+</html>

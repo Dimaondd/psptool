@@ -1,0 +1,28 @@
+__pycache__/
+*.pyc
+.DS_Store
+.venv/
+.idea/
+.claude/
+.taste-skill/
+
+# game data and everything made from it: never in the repository
+*.iso
+*.cso
+*.pmf
+*.elf
+*.BIN
+work/
+research/
+video_compare/
+backups/
+
+# build output
+build/
+dist/
+*.egg-info/
+psptool/_native/
+psptool/fonts/
+packaging/icon.png
+packaging/icon.icns
+packaging/icon.ico
