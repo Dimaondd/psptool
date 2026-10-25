@@ -42,9 +42,12 @@ def selftest() -> int:
     """What a release build carries: printed, 1 if something is missing."""
     from .core import ffmpeg, fonts, native, net, ocr, updates, xxh
     from .plugins.racjin import lz
+    import urllib.error
     try:  # certificates: a frozen Python may not find any (0.3.0 on macOS)
-        with net.urlopen("https://api.github.com/", timeout=20) as r:
-            https = r.status == 200
+        with net.urlopen("https://api.github.com/", timeout=20):
+            https = True
+    except urllib.error.HTTPError:
+        https = True   # an answer (a shared CI address is often rate limited): TLS worked
     except Exception as e:
         https = False
         print("https:", e)
