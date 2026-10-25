@@ -65,11 +65,14 @@ def allowed(cfg: Dict, token: str) -> bool:
 
 
 def is_local(addr: str) -> bool:
+    """The address a request came from is this computer (IPv4, IPv6, or IPv4 mapped into IPv6)."""
     return addr in ("127.0.0.1", "::1", "::ffff:127.0.0.1")
 
 
 def host(cfg: Dict) -> str:
-    return "0.0.0.0" if cfg.get("on") and has_password(cfg) else "127.0.0.1"
+    """Open: every address, IPv6 and IPv4 ("::", dual-stack: Tailscale's
+    names resolve to both); closed: this computer only."""
+    return "::" if cfg.get("on") and has_password(cfg) else "127.0.0.1"
 
 
 def _tailscale_cli() -> Optional[str]:

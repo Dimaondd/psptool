@@ -31,6 +31,17 @@ python3 -m venv .venv && .venv/bin/pip install -e ".[app]"
 .venv/bin/psptool ui work                  # or the web UI in a browser
 ```
 
+## Settings (sidebar → Настройки, ⌘,)
+
+- **Appearance:** light / dark / system theme; one of the PSP's twelve
+  theme colours (or "by month", as the console did) with the XMB wave in the
+  background; interface language.
+- **Languages:** English, Русский, Español, Português (Brasil), Français,
+  Deutsch, 简体中文, 日本語. Strings live in `psptool/ui/i18n_table.py`; after
+  editing it run `python -m psptool.ui.i18n_table`.
+- Language model, PPSSPP path, text recognition, components (AI upscalers to
+  download, ffmpeg, Tesseract) and access from other devices.
+
 ## Command line
 
 ```
@@ -114,7 +125,7 @@ minute per 1100 frames); with "Собирать образ из улучшенн
 the build encodes every movie from it into its own packs (same file size)
 and draws the subtitles on top. The preview shows any frame before/after.
 
-## Text recognition (UI → Проект → Распознавание текста)
+## Text recognition (Настройки → Распознавание текста)
 
 Movie subtitles and text in textures are read with OCR. Two engines:
 
@@ -129,14 +140,14 @@ Movie subtitles and text in textures are read with OCR. Two engines:
 "Автоматически" uses Vision when it is there, else Tesseract. Settings:
 `~/.config/psptool/ocr.json`.
 
-## Access from other devices (UI → Проект → Доступ с других устройств)
+## Access from other devices (Настройки → Доступ с других устройств)
 
 Set a password and tick the box: the server then listens on every address
 and asks other devices for the password (this computer never needs it).
 With Tailscale on the computer and the phone, the tailnet address works from
 anywhere. Settings: `~/.config/psptool/remote.json` (password hashed).
 
-## LLM translation (UI → LLM tab)
+## LLM translation (LLM tab; connection in Настройки → Языковая модель)
 
 - Anthropic (official SDK, default `claude-opus-5-5`): key in the UI,
   `ANTHROPIC_API_KEY`, or an `ant auth login` profile. Requests use

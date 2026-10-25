@@ -4,7 +4,7 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "psptool"
-version = "0.1.0"
+version = "0.2.0"
 description = "Unpack, translate and repack PSP game images"
 requires-python = ">=3.9"
 license = {text = "MIT"}

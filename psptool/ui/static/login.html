@@ -4,19 +4,34 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>PSPtool</title>
+<link rel="icon" href="favicon.svg" type="image/svg+xml">
+<link rel="icon" href="favicon-32.png" sizes="32x32" type="image/png">
+<link rel="apple-touch-icon" href="apple-touch-icon.png">
 <link rel="stylesheet" href="app.css">
+<script src="i18n.js"></script>
 </head>
 <body class="login">
-<form id="f" class="loginbox">
+<!-- the XMB wave: three translucent ribbons drifting; each path repeats
+     every 1200 units, so sliding the 2400-wide drawing by half loops it -->
+<div id="xmb" aria-hidden="true">
+  <svg class="w1" viewBox="0 0 2400 300" preserveAspectRatio="none"><defs><linearGradient id="xg1" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#fff" stop-opacity=".22"/><stop offset="1" stop-color="#fff" stop-opacity="0"/></linearGradient></defs>
+    <path d="M0 150 C 200 60 400 60 600 150 S 1000 240 1200 150 S 1600 60 1800 150 S 2200 240 2400 150 L 2400 300 L 0 300 Z" fill="url(#xg1)"/>
+    <path d="M0 150 C 200 60 400 60 600 150 S 1000 240 1200 150 S 1600 60 1800 150 S 2200 240 2400 150" fill="none" stroke="#fff" stroke-opacity=".35" stroke-width="1.2" vector-effect="non-scaling-stroke"/></svg>
+  <svg class="w2" viewBox="0 0 2400 300" preserveAspectRatio="none"><path d="M0 170 C 300 110 300 230 600 170 S 900 110 1200 170 S 1500 230 1800 170 S 2100 110 2400 170 L 2400 300 L 0 300 Z" fill="url(#xg1)" opacity=".7"/>
+    <path d="M0 170 C 300 110 300 230 600 170 S 900 110 1200 170 S 1500 230 1800 170 S 2100 110 2400 170" fill="none" stroke="#fff" stroke-opacity=".22" stroke-width="1" vector-effect="non-scaling-stroke"/></svg>
+  <svg class="w3" viewBox="0 0 2400 300" preserveAspectRatio="none"><path d="M0 130 C 150 175 450 85 600 130 S 1050 175 1200 130 S 1650 85 1800 130 S 2250 175 2400 130" fill="none" stroke="#fff" stroke-opacity=".18" stroke-width="1" vector-effect="non-scaling-stroke"/></svg>
+</div>
+<form id="f" class="loginbox glass">
   <div class="brand">
-    <svg class="mark" viewBox="0 0 22 22" aria-hidden="true"><rect x="1" y="5" width="20" height="12" rx="6" fill="none" stroke="#ef8a32" stroke-width="1.6"/><rect x="6.5" y="8" width="9" height="6" rx="1" fill="#ef8a32"/></svg>
+    <svg class="mark" viewBox="0 0 22 22" aria-hidden="true"><rect x="1" y="5" width="20" height="12" rx="6" fill="none" stroke="currentColor" stroke-width="1.6"/><rect x="6.5" y="8" width="9" height="6" rx="1" fill="currentColor"/></svg>
     <span>PSPtool</span>
   </div>
-  <input id="pw" type="password" placeholder="Пароль" autocomplete="current-password" autofocus>
-  <button class="btn primary">Войти</button>
+  <input id="pw" type="password" placeholder="Пароль" data-i18n-attr="placeholder" autocomplete="current-password" autofocus>
+  <button class="btn primary" data-i18n>Войти</button>
   <div id="msg" class="status err"></div>
 </form>
 <script>
+translatePage();
 document.getElementById("f").addEventListener("submit", async e => {
   e.preventDefault();
   const msg = document.getElementById("msg");
@@ -24,7 +39,7 @@ document.getElementById("f").addEventListener("submit", async e => {
   const r = await fetch("/api/login", { method: "POST", headers: { "Content-Type": "application/json" },
     body: JSON.stringify({ password: document.getElementById("pw").value }) });
   if (r.ok) location.href = "/";
-  else msg.textContent = (await r.json().catch(() => ({}))).error || "Ошибка";
+  else msg.textContent = L((await r.json().catch(() => ({}))).error || "Ошибка");
 });
 </script>
 </body>

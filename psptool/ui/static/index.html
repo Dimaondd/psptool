@@ -2,65 +2,77 @@
 <html lang="ru">
 <head>
 <meta charset="utf-8">
-<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <title>PSPtool</title>
-<link rel="preconnect" href="https://fonts.googleapis.com"><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link href="https://fonts.googleapis.com/css2?family=Public+Sans:wght@400;500;600;700&family=JetBrains+Mono:wght@400&display=swap" rel="stylesheet">
+<meta name="theme-color" content="#0b0b0d">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<link rel="icon" href="favicon.svg" type="image/svg+xml">
+<link rel="icon" href="favicon-32.png" sizes="32x32" type="image/png">
+<link rel="apple-touch-icon" href="apple-touch-icon.png">
 <link rel="stylesheet" href="app.css">
 </head>
 <body>
-<header>
+<!-- the XMB wave: three translucent ribbons drifting; each path repeats
+     every 1200 units, so sliding the 2400-wide drawing by half loops it -->
+<div id="xmb" aria-hidden="true">
+  <svg class="w1" viewBox="0 0 2400 300" preserveAspectRatio="none"><defs><linearGradient id="xg1" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#fff" stop-opacity=".22"/><stop offset="1" stop-color="#fff" stop-opacity="0"/></linearGradient></defs>
+    <path d="M0 150 C 200 60 400 60 600 150 S 1000 240 1200 150 S 1600 60 1800 150 S 2200 240 2400 150 L 2400 300 L 0 300 Z" fill="url(#xg1)"/>
+    <path d="M0 150 C 200 60 400 60 600 150 S 1000 240 1200 150 S 1600 60 1800 150 S 2200 240 2400 150" fill="none" stroke="#fff" stroke-opacity=".35" stroke-width="1.2" vector-effect="non-scaling-stroke"/></svg>
+  <svg class="w2" viewBox="0 0 2400 300" preserveAspectRatio="none"><path d="M0 170 C 300 110 300 230 600 170 S 900 110 1200 170 S 1500 230 1800 170 S 2100 110 2400 170 L 2400 300 L 0 300 Z" fill="url(#xg1)" opacity=".7"/>
+    <path d="M0 170 C 300 110 300 230 600 170 S 900 110 1200 170 S 1500 230 1800 170 S 2100 110 2400 170" fill="none" stroke="#fff" stroke-opacity=".22" stroke-width="1" vector-effect="non-scaling-stroke"/></svg>
+  <svg class="w3" viewBox="0 0 2400 300" preserveAspectRatio="none"><path d="M0 130 C 150 175 450 85 600 130 S 1050 175 1200 130 S 1650 85 1800 130 S 2250 175 2400 130" fill="none" stroke="#fff" stroke-opacity=".18" stroke-width="1" vector-effect="non-scaling-stroke"/></svg>
+</div>
+<!-- the window: a floating glass sidebar (desktop), a glass bar on top and
+     a tab bar at the bottom (phone); content scrolls under the glass -->
+<aside id="sidebar" class="glass">
   <div class="brand">
     <!-- the mark: a PSP's screen between its two grips -->
-    <svg class="mark" viewBox="0 0 22 22" aria-hidden="true"><rect x="1" y="5" width="20" height="12" rx="6" fill="none" stroke="#ef8a32" stroke-width="1.6"/><rect x="6.5" y="8" width="9" height="6" rx="1" fill="#ef8a32"/></svg>
-    <span>PSPtool</span><span class="scope" id="scope"></span>
+    <svg class="mark" viewBox="0 0 22 22" aria-hidden="true"><rect x="1" y="5" width="20" height="12" rx="6" fill="none" stroke="currentColor" stroke-width="1.6"/><rect x="6.5" y="8" width="9" height="6" rx="1" fill="currentColor"/></svg>
+    <div class="brand-text"><span>PSPtool</span><span class="scope" id="scope"></span></div>
   </div>
-  <nav id="tabs"></nav>
-  <div id="jobbar" class="pill" hidden></div>
-  <button id="play" class="btn" data-job hidden title="Собрать тестовый образ и запустить в эмуляторе"><span class="i" data-icon="play"></span><span>Проверить в игре</span></button>
+  <nav id="tabs" aria-label="Разделы" data-i18n-attr="aria-label"></nav>
+  <div class="side-foot" id="side-foot">
+    <button id="side-settings" class="side-btn" type="button" title="Настройки (⌘,)" data-i18n-attr="title"><span class="i" data-icon="gear"></span><span data-i18n>Настройки</span></button>
+    <button id="side-toggle" class="side-btn" type="button" title="Свернуть боковую панель (⌃⌘S)" data-i18n-attr="title"><span class="i" data-icon="sidebar"></span><span data-i18n>Свернуть панель</span></button>
+    <div id="jobbar" class="pill" hidden></div>
+    <button id="play" class="btn tinted" data-job hidden title="Собрать тестовый образ и запустить в эмуляторе" data-i18n-attr="title"><span class="i" data-icon="play"></span><span data-i18n>Проверить в игре</span></button>
+  </div>
+</aside>
+<header id="topbar">
+  <button id="top-back" class="glass" type="button" aria-label="Назад" data-i18n-attr="aria-label"><span class="i" data-icon="back"></span></button>
+  <div class="top-title glass" id="top-title">PSPtool</div>
+  <div class="top-right" id="top-right"></div>
 </header>
+<nav id="tabbar" class="glass" aria-label="Разделы" data-i18n-attr="aria-label"></nav>
+<div id="edge" aria-hidden="true"></div>
 <main>
   <section id="view-project" class="view page"></section>
 
   <section id="view-texts" class="view" hidden>
     <aside class="side">
-      <div class="search"><span class="i" data-icon="search"></span><input id="entry-filter" type="search" placeholder="Файлы"></div>
-      <select id="entry-mode" title="Какие файлы показывать">
-        <option value="all">Все файлы</option>
-        <option value="done">Только переведённые</option>
-        <option value="checked">Только проверенные</option>
-        <option value="undone">Скрыть переведённые</option>
-        <option value="unchecked">Скрыть проверенные</option>
-      </select>
+      <div class="titlebar side-title"><h1 data-i18n>Текст</h1><span class="sub" id="side-sub"></span></div>
+      <div class="searchrow"><div class="search grow"><span class="i" data-icon="search"></span><input id="entry-filter" type="search" placeholder="Поиск файлов" data-i18n-attr="placeholder"></div><span class="tools-inline" id="entry-tools"></span></div>
+      <div id="entry-tokens"></div>
       <ul id="entry-list" class="list"></ul>
     </aside>
     <div class="texts">
-      <div class="titlebar compact"><h1 id="texts-title">Текст</h1><span class="sub" id="texts-sub"></span></div>
+      <div class="titlebar compact"><button id="texts-back" class="back" type="button" data-i18n><span class="i" data-icon="back"></span>Файлы</button><h1 id="texts-title" data-i18n>Текст</h1><span class="sub" id="texts-sub"></span></div>
       <div class="toolbar">
-        <div class="search grow"><span class="i" data-icon="search"></span><input id="search" type="search" placeholder="Поиск"></div>
-        <select id="search-in" title="Где искать">
-          <option value="any">Везде</option>
-          <option value="src">Оригинал</option>
-          <option value="ref">Подсказка</option>
-          <option value="dst">Перевод</option>
-        </select>
-        <div class="seg" id="mode">
-          <button data-v="all" class="on">Все</button>
-          <button data-v="todo">Без перевода</button>
-          <button data-v="mt">LLM</button>
-          <button data-v="unchecked">Не проверено</button>
-        </div>
+        <div class="search grow"><span class="i" data-icon="search"></span><input id="search" type="search" placeholder="Поиск по всем файлам" data-i18n-attr="placeholder"></div>
+        <span class="tools-inline" id="row-tools"></span>
         <span id="texts-status" class="muted small"></span>
-        <button id="check-entry" class="btn" hidden><span class="i" data-icon="check"></span><span>Проверить файл</span></button>
-        <button id="llm-entry" class="btn primary" data-job hidden><span class="i" data-icon="spark"></span>Перевести файл</button>
+        <button id="check-entry" class="btn" hidden><span class="i" data-icon="check"></span><span data-i18n>Проверить файл</span></button>
+        <button id="llm-entry" class="btn primary" data-job hidden data-i18n><span class="i" data-icon="spark"></span>Перевести файл</button>
       </div>
+      <div id="row-tokens"></div>
       <div id="texts-job" class="jobpanel" hidden>
         <div class="jhead">
           <span class="jtitle"></span>
           <div class="jbar"><i></i></div>
           <span class="jnum muted small"></span>
-          <button class="icon-btn jtoggle" title="Журнал">▾</button>
-          <button class="icon-btn jclose" title="Закрыть"><span class="i" data-icon="close"></span></button>
+          <button class="icon-btn jtoggle" title="Журнал" data-i18n-attr="title">▾</button>
+          <button class="icon-btn jclose" title="Закрыть" data-i18n-attr="title"><span class="i" data-icon="close"></span></button>
         </div>
         <pre class="log" hidden></pre>
       </div>
@@ -69,40 +81,36 @@
   </section>
 
   <section id="view-textures" class="view" hidden>
-    <div class="titlebar"><h1>Текстуры</h1><span class="sub">картинки игры: оригинал, подсказка и перевод</span></div>
+    <div class="titlebar"><h1 data-i18n>Текстуры</h1><span class="sub" data-i18n>картинки игры: оригинал, подсказка и перевод</span></div>
     <div class="toolbar">
-      <div class="search"><span class="i" data-icon="search"></span><input id="tx-find" type="search" placeholder="Номер файла"></div>
-      <div class="seg" id="tx-mode">
-        <button data-v="ref" class="on">С текстом</button>
-        <button data-v="edited">Изменённые</button>
-        <button data-v="all">Все</button>
-      </div>
+      <div class="search"><span class="i" data-icon="search"></span><input id="tx-find" type="search" placeholder="Номер файла" data-i18n-attr="placeholder"></div>
+      <span class="tools-inline" id="tx-tools"></span>
       <span id="tx-status" class="muted small"></span>
-      <button id="tx-index" class="btn" data-job>Обновить каталог</button>
+      <button id="tx-index" class="btn" data-job data-i18n>Обновить каталог</button>
     </div>
+    <div id="tx-tokens"></div>
     <div id="tx-pager"></div>
     <div id="tx-grid" class="tgrid"></div>
     <div id="tx-detail" class="modal" hidden></div>
   </section>
   <section id="view-hd" class="view page" hidden></section>
   <section id="view-font" class="view page" hidden></section>
+  <section id="view-settings" class="view page" hidden></section>
   <section id="view-llm" class="view page" hidden></section>
 
   <section id="view-charmap" class="view" hidden>
-    <div class="titlebar"><h1>Таблица символов</h1><span class="sub">коды шрифта игры и их знаки</span></div>
+    <div class="titlebar"><h1 data-i18n>Таблица символов</h1><span class="sub" data-i18n>коды шрифта игры и их знаки</span></div>
     <div class="toolbar">
-      <div class="search"><span class="i" data-icon="search"></span><input id="cm-find" type="search" placeholder="Символ или код"></div>
-      <div class="seg" id="cm-mode">
-        <button data-v="unsure" class="on">Сомнительные</button>
-        <button data-v="icons">Значки</button>
-        <button data-v="all">Все</button>
-      </div>
+      <div class="search"><span class="i" data-icon="search"></span><input id="cm-find" type="search" placeholder="Символ или код" data-i18n-attr="placeholder"></div>
+      <span class="tools-inline" id="cm-tools"></span>
       <span id="cm-status" class="muted small"></span>
     </div>
+    <div id="cm-tokens"></div>
     <div id="cm-pager"></div>
     <div id="glyphs" class="glyphs"></div>
   </section>
 </main>
+<script src="i18n.js"></script>
 <script src="app.js"></script>
 </body>
 </html>

@@ -340,9 +340,10 @@ def pick(disc_id: str, sizes: List[str] = (), models: List[str] = (), redo: bool
 
 def gallery(disc_id: str, offset: int = 0, limit: int = 60, q: str = "", size: str = "",
             only: Optional[set] = None, model: str = "", marks: Optional[set] = None,
-            want_all: bool = False) -> Dict:
-    """Upscaled textures, bigger originals first. Filters: name part, the
-    original size ("32x32"), a set of names (marked), the model used."""
+            want_all: bool = False, sort: str = "size", desc: bool = True) -> Dict:
+    """Upscaled textures. Filters: name part, the original size ("32x32"),
+    a set of names (marked), the model used. Order: size (area), name or
+    model; desc reverses it."""
     d = tex_dir(disc_id)
     src = sources(disc_id)
     hd = {n for n in os.listdir(d) if n.endswith(".png")} if os.path.isdir(d) else set()
@@ -366,7 +367,9 @@ def gallery(disc_id: str, offset: int = 0, limit: int = 60, q: str = "", size: s
     if model:
         want_m = set(model.split(","))
         done = [x for x in done if (by.get(x, "").split(" ")[0] or "?") in want_m]
-    done.sort(key=lambda x: (-dims[x][0] * dims[x][1], x))
+    keys = {"size": lambda x: (dims[x][0] * dims[x][1], x), "name": lambda x: x,
+            "model": lambda x: (by.get(x, "").split(" ")[0] or "~", x)}
+    done.sort(key=keys.get(sort, keys["size"]), reverse=desc)
     items = []
     for n in done[offset:offset + limit]:
         w, h = dims[n]

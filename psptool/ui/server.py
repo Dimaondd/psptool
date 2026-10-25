@@ -7,6 +7,7 @@ and the page polls /api/job for the log.
 import json
 import os
 import re
+import socket
 import threading
 import time
 import traceback
@@ -15,7 +16,7 @@ from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 from typing import Optional
 from urllib.parse import parse_qs, urlparse
 
-from ..core import hdtex, llm, ocr, picker, playtest, plugin, remote, textfit
+from ..core import ffmpeg, hdtex, llm, ocr, picker, playtest, plugin, remote, textfit
 from ..core.iso import IsoImage
 from ..core.project import Project
 from ..core.sfo import parse_sfo
@@ -190,14 +191,22 @@ class App:
             self.game.save_texts(entry, rows)
         return {k: self.check(v) for k, v in changes.items() if v}
 
-    def search(self, q: str, field: str, mode: str, limit=500):
+    @staticmethod
+    def row_ok(r: dict, flt: dict) -> bool:
+        """The UI's line filters (app.js rowOk): tr empty|done, src mt|manual, chk yes|no."""
+        dst = bool(r.get("dst"))
+        tr, src, chk = flt.get("tr"), flt.get("src"), flt.get("chk")
+        return ((not tr or (not dst if tr == "empty" else dst))
+                and (not src or (dst and bool(r.get("mt")) == (src == "mt")))
+                and (not chk or (dst and bool(r.get("checked")) == (chk == "yes"))))
+
+    def search(self, q: str, field: str, flt: dict, limit=500):
         g = self.game
         rx = re.compile(re.escape(q), re.I) if q else None
         hits = []
         for i in g.text_entries():
             for r in g.load_texts(i):
-                if (mode == "todo" and r.get("dst") or mode == "mt" and not r.get("mt")
-                        or mode == "unchecked" and (not r.get("dst") or r.get("checked"))):
+                if not self.row_ok(r, flt):
                     continue
                 hay = r.get(field, "") if field != "any" else r["src"] + "\n" + r.get("ref", "") + "\n" + r.get("dst", "")
                 if rx is None or rx.search(hay):
@@ -505,7 +514,9 @@ class Handler(BaseHTTPRequestHandler):
     app: App = None
 
     def log_message(self, fmt, *args):
-        pass
+        # requests from other devices go to the terminal: who reached the server
+        if not remote.is_local(self.client_address[0]):
+            print("%s %s" % (self.client_address[0], fmt % args), flush=True)
 
     def _send(self, code, body, ctype="application/json; charset=utf-8"):
         if not isinstance(body, bytes):
@@ -567,7 +578,8 @@ class Handler(BaseHTTPRequestHandler):
         if not self._local() and not remote.allowed(remote.load(), self._token()):
             if u.path == "/api/login" and method == "POST":
                 return self._login()
-            if u.path in ("/login.html", "/app.css"):
+            if u.path in ("/login.html", "/app.css", "/i18n.js", "/favicon.svg", "/favicon-32.png", "/apple-touch-icon.png") \
+                    or re.fullmatch(r"/i18n/[\w-]+\.js", u.path):
                 return self._static(u.path)
             if u.path.startswith("/api/"):
                 return self._send(401, {"error": "login"})
@@ -577,7 +589,7 @@ class Handler(BaseHTTPRequestHandler):
             self.end_headers()
             return
         try:
-            if u.path in ("/api/pick", "/api/shutdown", "/api/remote", "/api/ocr") and method != "GET" and not self._local():
+            if u.path in ("/api/pick", "/api/shutdown", "/api/remote", "/api/ocr", "/api/emulator") and method != "GET" and not self._local():
                 raise PermissionError("только на этом компьютере")
             if not u.path.startswith("/api/"):
                 return self._static(u.path)
@@ -632,7 +644,7 @@ class Handler(BaseHTTPRequestHandler):
             port = self.server.server_address[1]
             return {"on": bool(cfg.get("on")), "has_password": remote.has_password(cfg),
                     "listening": self.server.server_address[0], "tailscale": remote.tailscale(),
-                    "addresses": remote.addresses(port) if remote.host(cfg) == "0.0.0.0" else []}
+                    "addresses": remote.addresses(port) if remote.host(cfg) != "127.0.0.1" else []}
         if path == "pick" and method == "POST":
             b = self._body()
             return {"path": picker.pick(b.get("kind", "open"), b.get("prompt", ""), b.get("start", ""), b.get("name", ""))}
@@ -672,6 +684,25 @@ class Handler(BaseHTTPRequestHandler):
                 return {"ok": True, "reply": out[:200]}
             except llm.LLMError as e:
                 return {"ok": False, "reply": str(e)}
+        # app settings: none of these need a project
+        if path == "emulator":
+            if method == "PUT":
+                cfg = playtest.load()
+                cfg["emulator"] = self._body().get("emulator", "")
+                playtest.save(cfg)
+            return {"emulator": playtest.find_emulator()}
+        if path == "components":
+            return {"tools": hdtex.tools(), "ffmpeg": ffmpeg.find() or "", "tesseract": ocr.tesseract_bin() or "",
+                    "vision": ocr.vision_available()}
+        if method == "POST" and path == "run/hdtool":
+            tool = self._body()["tool"]
+
+            def fetch(log):
+                app.job.progress = [0, 0]
+                hdtex.install(tool, log=log, progress=app.job.progress)
+            app.job.start("hdtool", fetch)
+            return app.job.state()
+
         if g is None:
             raise ValueError("no project open")
 
@@ -690,7 +721,7 @@ class Handler(BaseHTTPRequestHandler):
                 return {"errors": app.save_texts(int(m.group(1)), self._body())}
             return app.with_dups(g.load_texts(int(m.group(1))))
         if path == "search":
-            return app.with_dups(app.search(q.get("q", ""), q.get("in", "any"), q.get("mode", "all")))
+            return app.with_dups(app.search(q.get("q", ""), q.get("in", "any"), {k: q.get(k, "") for k in ("tr", "src", "chk")}))
         if method == "POST" and path == "propagate":
             b = self._body()
             return {"count": app.propagate(b["src"], b["dst"])}
@@ -730,16 +761,21 @@ class Handler(BaseHTTPRequestHandler):
 
         if path == "textures":
             rows = g.texture_index()
-            f = q.get("filter", "ref")
-            if f == "ref":
-                rows = [r for r in rows if r["ref"] or r["edited"]]
-            elif f == "edited":
-                rows = [r for r in rows if r["edited"]]
+            indexed = bool(rows)
             if q.get("q"):
                 rows = [r for r in rows if r["id"].startswith(q["q"].zfill(4)) or q["q"] in r["id"]]
+            # what each "Показать" choice would show (the filter menu's counts)
+            show = {"ref": lambda r: r["ref"] or r["edited"], "edited": lambda r: r["edited"],
+                    "todo": lambda r: r["ref"] and not r["edited"], "all": lambda r: True}
+            counts = {k: sum(1 for r in rows if fn(r)) for k, fn in show.items()}
+            rows = [r for r in rows if show.get(q.get("filter", "ref"), show["ref"])(r)]
+            if q.get("sort") == "size":
+                rows.sort(key=lambda r: (r["w"] * r["h"], r["id"]))
+            if q.get("dir") == "desc":
+                rows.reverse()
             off = int(q.get("offset", 0))
             return {"total": len(rows), "items": rows[off:off + int(q.get("limit", 300))],
-                    "indexed": bool(g.texture_index())}
+                    "indexed": indexed, "counts": counts}
         m = re.fullmatch(r"texture/([0-9a-zA-Z_\-]+)\.png", path)
         if m:
             return ("image/png", g.texture_png(m.group(1), q.get("which", "jp"), int(q.get("scale", 1))))
@@ -798,7 +834,8 @@ class Handler(BaseHTTPRequestHandler):
             marks = app.hd_marks()
             return hdtex.gallery(g.project.meta.get("disc_id") or "", int(q.get("offset", 0)),
                                  int(q.get("limit", 60)), q.get("q", ""), q.get("size", ""),
-                                 marks if q.get("marked") == "1" else None, q.get("model", ""), marks)
+                                 marks if q.get("marked") == "1" else None, q.get("model", ""), marks,
+                                 sort=q.get("sort", "size"), desc=q.get("dir", "desc") == "desc")
         if path == "hd/marks":
             b = self._body() if method != "GET" else {}
             if method == "PUT":  # these names
@@ -946,6 +983,19 @@ def _stop_old(url: str) -> bool:
     return True
 
 
+class DualStackServer(ThreadingHTTPServer):
+    """IPv6 socket that also takes IPv4 (mapped addresses)."""
+    address_family = socket.AF_INET6
+
+    def server_bind(self):
+        self.socket.setsockopt(socket.IPPROTO_IPV6, socket.IPV6_V6ONLY, 0)
+        super().server_bind()
+
+
+def make_server(host: str, port: int) -> ThreadingHTTPServer:
+    return (DualStackServer if ":" in host else ThreadingHTTPServer)((host, port), Handler)
+
+
 _REBIND = []
 
 
@@ -962,7 +1012,7 @@ def serve(workdir: Optional[str] = None, port: int = 8765, open_browser: bool = 
     srv = None
     for attempt in range(20):
         try:
-            srv = ThreadingHTTPServer((remote.host(remote.load()), port), Handler)
+            srv = make_server(remote.host(remote.load()), port)
             break
         except OSError:
             if attempt == 0 and not _stop_old(url):
@@ -991,7 +1041,7 @@ def serve(workdir: Optional[str] = None, port: int = 8765, open_browser: bool = 
         _REBIND.clear()
         for _ in range(40):  # the old socket may take a moment to let go
             try:
-                srv = ThreadingHTTPServer((remote.host(remote.load()), port), Handler)
+                srv = make_server(remote.host(remote.load()), port)
                 break
             except OSError:
                 time.sleep(0.25)
