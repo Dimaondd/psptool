@@ -297,9 +297,10 @@ function renderTabs() {
   fill($("#tabs"), ...tabs.map(t => btn(t)));
   const more = [...tabs.filter(t => !PHONE_TABS.includes(t.id)), TABS.find(t => t.id === "settings")];
   fill($("#tabbar"), ...tabs.filter(t => PHONE_TABS.includes(t.id)).map(t => btn(t, true)),
-    more.length || state.project?.open ? h("button", { class: more.some(t => t.id === state.tab) ? "on" : "", onclick: () => moreSheet(more) },
+    more.length || state.project?.open ? h("button", { class: "more" + (more.some(t => t.id === state.tab) ? " on" : ""), onclick: () => moreSheet(more) },
       icon("more"), h("span", {}, L("Ещё"))) : null);
   if (!state.back) $("#top-title").textContent = TABS.find(t => t.id === state.tab)?.title || "PSPtool";
+  markUpdate();
   requestAnimationFrame(() => placeLens(true));
 }
 
@@ -1278,15 +1279,53 @@ async function renderSettings(v) {
     try { localStorage.setItem("psptool.wave", wave.checked ? "on" : "off"); } catch (e) {}
     document.documentElement.classList.toggle("still", !wave.checked);
   };
-  const llmSlot = h("div"), emuSlot = h("div"), ocrSlot = h("div"), compSlot = h("div"), remoteSlot = h("div");
+  const updSlot = h("div"), llmSlot = h("div"), emuSlot = h("div"), ocrSlot = h("div"), compSlot = h("div"), remoteSlot = h("div");
   fill(v, titlebar(L("Настройки"), L("для всего приложения, не для одного проекта")),
     section(L("Внешний вид"), form([[L("Тема"), themeSeg],
       [L("Цвет"), h("div", { style: "width:100%" }, swatches, caption)],
       [L("Волна"), h("label", { class: "switch" }, wave, L("Плавная волна на фоне, как в меню PSP"))],
       [L("Язык"), langSel]])),
-    llmSlot, emuSlot, ocrSlot, compSlot, remoteSlot);
-  renderLlmConnection(llmSlot); renderEmulator(emuSlot); renderOcr(ocrSlot); renderComponents(compSlot);
+    updSlot, llmSlot, emuSlot, ocrSlot, compSlot, remoteSlot);
+  renderUpdates(updSlot); renderLlmConnection(llmSlot); renderEmulator(emuSlot); renderOcr(ocrSlot); renderComponents(compSlot);
   if (!state.project?.client_remote) renderRemote(remoteSlot);
+}
+
+// updates: the latest release on GitHub, installed only with the author's
+// signature (core/updates.py); the app restarts in the new version
+async function renderUpdates(slot, force = false) {
+  let u;
+  try { u = state.update = await api("update" + (force ? "?force=1" : "")); } catch (e) { u = { current: "", error: e.message }; }
+  markUpdate();
+  const panel = jobPanel();
+  const status = u.available ? L("Доступна версия {0}", u.latest)
+    : u.unsigned ? L("Версия {0} вышла без подписи и не устанавливается", u.latest)
+    : u.error ? L("Не удалось проверить: {0}", u.error)
+    : u.latest ? L("Установлена последняя версия") : "";
+  const why = u.available && { source: L("Запущено из исходников: обновите через git pull."),
+    permission: L("Нет прав на запись в папку приложения: скачайте новую версию со страницы релиза."),
+    system: L("Для этой системы нет сборки приложения.") }[u.installable];
+  const check = h("button", { class: "btn", onclick: () => { check.disabled = true; check.textContent = L("Проверка…"); renderUpdates(slot, true); } },
+    L("Проверить обновления"));
+  const install = u.available && !u.installable && !state.project?.client_remote ? h("button", { class: "btn primary", "data-job": true, onclick: async () => {
+    openJobPanel(panel, L("Обновление до {0}: приложение перезапустится", u.latest));
+    await api("update/install", { body: {} });
+    jobNext = 0; jobOwner = "update"; pollJob();
+  } }, icon("download"), L("Обновить до {0}", u.latest)) : null;
+  fill(slot, section(L("Обновления"), form([
+    [L("Версия"), h("span", {}, "PSPtool " + u.current)],
+    [L("Статус"), h("div", { style: "width:100%" }, h("div", { class: u.available ? "" : u.error && !u.latest ? "err" : "muted" }, status || "…"),
+      u.checked ? h("div", { class: "muted small" }, L("Проверено: {0}", new Date(u.checked * 1000).toLocaleString())) : null,
+      why ? h("div", { class: "muted small" }, why) : null)],
+    ...(u.available && u.notes ? [[L("Что нового"), h("div", { class: "notes" }, u.notes)]] : []),
+  ]), h("div", { class: "actions" },
+    u.available && u.page ? h("a", { class: "btn", href: u.page, target: "_blank", rel: "noopener" }, L("Страница релиза")) : null,
+    check, install), panel));
+}
+// a dot on Settings (and on "Ещё" on the phone) while an update waits
+function markUpdate() {
+  const on = !!state.update?.available;
+  $("#side-settings").classList.toggle("dot", on);
+  $("#tabbar .more")?.classList.toggle("dot", on);
 }
 
 // the language model: provider, key, model (stored for the app, ~/.config/psptool)
@@ -2094,4 +2133,6 @@ window.addEventListener("beforeunload", () => { if (pending.size) flush(); });
   if (!t || (!state.project.open && tab !== "settings") || (t.feature && !feats.includes(t.feature))) tab = "project";
   show(tab);
   pollJob();
+  // once a day the server asks GitHub; otherwise it answers from its cache
+  if (!state.project.client_remote) api("update").then(u => { state.update = u; markUpdate(); }).catch(() => {});
 })();

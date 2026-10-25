@@ -43,6 +43,11 @@ PSPtool contains no game data: use your own copy of the game.
 - Windows: unzip, run `PSPtool.exe`. SmartScreen may warn about an unknown
   publisher: "More info" → "Run anyway".
 
+The app checks for new releases once a day (Settings → Updates) and
+installs one only when it carries the maintainer's signature; it then
+restarts in the new version. Versions before 0.3.0 have no updater:
+download 0.3.0 by hand once.
+
 Optional:
 
 - [PPSSPP](https://www.ppsspp.org) for "Test in game" and HD textures.

@@ -30,6 +30,12 @@ browser talk to it.
   pinned in `psptool/core/hdtex.py`.
 - **Release builds** use pinned GitHub Actions (by commit) and pinned
   Python packages.
+- **Updates are signed.** Each release file comes with an Ed25519
+  signature made on the maintainer's computer with a key that is never on
+  GitHub; the app knows the public key (`psptool/core/updates.py`) and
+  installs an update only if its signature matches. Someone who took over
+  the GitHub account or the build could publish files, but installed apps
+  would refuse them.
 
 The release apps are not signed by Apple or Microsoft; your system will warn
 about an unknown developer on first start.

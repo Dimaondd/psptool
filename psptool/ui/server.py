@@ -16,7 +16,7 @@ from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 from typing import Optional
 from urllib.parse import parse_qs, urlparse
 
-from ..core import ffmpeg, hdtex, llm, ocr, picker, playtest, plugin, remote, textfit
+from ..core import ffmpeg, hdtex, llm, ocr, picker, playtest, plugin, remote, textfit, updates
 from ..core.iso import IsoImage
 from ..core.project import Project
 from ..core.sfo import parse_sfo
@@ -641,7 +641,7 @@ class Handler(BaseHTTPRequestHandler):
             self.end_headers()
             return
         try:
-            if u.path in ("/api/pick", "/api/shutdown", "/api/remote", "/api/ocr", "/api/emulator") and method != "GET" and not self._local():
+            if u.path in ("/api/pick", "/api/shutdown", "/api/remote", "/api/ocr", "/api/emulator", "/api/update/install") and method != "GET" and not self._local():
                 raise PermissionError("только на этом компьютере")
             if not u.path.startswith("/api/"):
                 return self._static(u.path)
@@ -746,6 +746,19 @@ class Handler(BaseHTTPRequestHandler):
         if path == "components":
             return {"tools": hdtex.tools(), "ffmpeg": ffmpeg.find() or "", "tesseract": ocr.tesseract_bin() or "",
                     "vision": ocr.vision_available()}
+        if path == "update":
+            return updates.check(force=q.get("force") == "1")
+        if method == "POST" and path == "update/install":
+            if updates.installable():
+                raise ValueError("this copy cannot update itself (%s)" % updates.installable())
+
+            def fn(log):
+                app.job.progress = [0, 0]
+                file = updates.download(log=log, progress=app.job.progress)
+                updates.install(file, log=log)
+                threading.Timer(1.5, lambda: os._exit(0)).start()  # the helper waits for this process to end
+            app.job.start("update", fn)
+            return app.job.state()
         if method == "POST" and path == "run/hdtool":
             tool = self._body()["tool"]
 

@@ -4,7 +4,7 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "psptool"
-version = "0.2.0"
+dynamic = ["version"]
 description = "Unpack, translate and repack PSP game images"
 requires-python = ">=3.9"
 license = {text = "MIT"}
@@ -23,6 +23,9 @@ psptool = "psptool.cli:main"
 
 [project.gui-scripts]
 psptool-app = "psptool.app:main"
+
+[tool.setuptools.dynamic]
+version = {attr = "psptool.__version__"}
 
 [tool.setuptools.packages.find]
 include = ["psptool*"]

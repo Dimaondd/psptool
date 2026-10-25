@@ -40,7 +40,7 @@ def _dialog(window):
 
 def selftest() -> int:
     """What a release build carries: printed, 1 if something is missing."""
-    from .core import ffmpeg, fonts, native, ocr, xxh
+    from .core import ffmpeg, fonts, native, ocr, updates, xxh
     from .plugins.racjin import lz
     ok = True
     for name, good, info in [
@@ -49,6 +49,7 @@ def selftest() -> int:
         ("racjin lz (C)", bool(lz._load_c()), native.PREBUILT),
         ("font PT Sans Bold", fonts.exists(fonts.PTSANS, 7), fonts.resolve(fonts.PTSANS, 7)[0]),
         ("ocr", True, ocr.engine() or "none"),
+        ("self-update", True, updates.installable() or "can replace itself"),
     ]:
         print("%-18s %s  %s" % (name, "ok" if good else "MISSING", info))
         ok = ok and good
