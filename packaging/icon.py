@@ -1,4 +1,4 @@
-"""The app icon from the UI's mark (a PSP: screen between two grips),
+"""The app icon from the UI's mark (a PSP: screen between two grips), white on black,
 as icon.png (1024), icon.icns (macOS, needs iconutil) and icon.ico."""
 import os
 import shutil
@@ -9,7 +9,7 @@ import tempfile
 from PIL import Image, ImageDraw
 
 HERE = os.path.dirname(os.path.abspath(__file__))
-ORANGE, GROUND = (239, 138, 50, 255), (23, 23, 25, 255)
+INK, GROUND = (255, 255, 255, 255), (0, 0, 0, 255)  # black and white: no theme colour
 
 
 def draw(size: int) -> Image.Image:
@@ -19,8 +19,8 @@ def draw(size: int) -> Image.Image:
     d.rounded_rectangle((0, 0, size - 1, size - 1), radius=size * 0.22, fill=GROUND)
     k, o = 0.72, size * 0.14  # the mark at 72%, centred
     t = lambda v: o + v * s * k
-    d.rounded_rectangle((t(1), t(5), t(21), t(17)), radius=6 * s * k, outline=ORANGE, width=max(1, round(1.6 * s * k)))
-    d.rounded_rectangle((t(6.5), t(8), t(15.5), t(14)), radius=1 * s * k, fill=ORANGE)
+    d.rounded_rectangle((t(1), t(5), t(21), t(17)), radius=6 * s * k, outline=INK, width=max(1, round(1.6 * s * k)))
+    d.rounded_rectangle((t(6.5), t(8), t(15.5), t(14)), radius=1 * s * k, fill=INK)
     return im
 
 

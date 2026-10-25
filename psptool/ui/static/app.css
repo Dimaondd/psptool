@@ -137,7 +137,7 @@ code { font-family: var(--mono); }
            transition: width .45s var(--spring);
            --glass-bg: var(--side-glass); --glass-blur: blur(30px) saturate(210%) brightness(1.05); }
 .brand { display: flex; align-items: center; gap: 10px; padding: 4px 0 14px 11px; min-width: 0; }
-.brand .mark { width: 26px; height: 26px; flex: none; color: var(--accent); }
+.brand .mark { width: 26px; height: 26px; flex: none; color: var(--text); }  /* black and white: right with any theme colour */
 .brand-text { display: flex; flex-direction: column; min-width: 0; line-height: 1.25; white-space: nowrap; }
 .brand-text > span:first-child { font: 600 14px var(--display); letter-spacing: -.01em; }
 .brand .scope { color: var(--muted); font-size: var(--fs-small); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
