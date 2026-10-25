@@ -27,7 +27,7 @@ import urllib.request
 from typing import Dict, Optional
 
 from .. import __version__
-from . import ed25519
+from . import ed25519, net
 
 REPO = "Dimaondd/psptool"
 PUBLIC_KEY = base64.b64decode("yN7NwQ85p0SjjNzPK1UrPJT0m1D6my1DBmiUJKi85RM=")
@@ -89,7 +89,7 @@ def _load_state() -> Dict:
 def _get(url: str, timeout=20):
     req = urllib.request.Request(url, headers={"Accept": "application/vnd.github+json",
                                                "User-Agent": "PSPtool/" + __version__})
-    return urllib.request.urlopen(req, timeout=timeout)
+    return net.urlopen(req, timeout=timeout)
 
 
 def check(force: bool = False) -> Dict:

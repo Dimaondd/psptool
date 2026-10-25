@@ -16,6 +16,8 @@ import urllib.error
 import urllib.request
 from typing import Callable, Dict, List, Optional
 
+from . import net
+
 CONFIG = os.path.join(os.path.expanduser("~"), ".config", "psptool", "llm.json")
 
 DEFAULTS = {
@@ -131,7 +133,7 @@ def _ask_openai(cfg: Dict, system: str, user: str) -> str:
                                  headers={"Content-Type": "application/json",
                                           **({"Authorization": "Bearer " + key} if key else {})})
     try:
-        with urllib.request.urlopen(req, timeout=600) as r:
+        with net.urlopen(req, timeout=600) as r:
             data = json.loads(r.read())
     except urllib.error.HTTPError as e:
         raise LLMError("%s %s: %s" % (url, e.code, e.read()[:300].decode("utf-8", "replace")))

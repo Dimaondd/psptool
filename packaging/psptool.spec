@@ -28,7 +28,7 @@ for opt in ("fonts", os.path.join("games", "bleach_sc2", "data")):
         datas += tree(opt)
 
 a = Analysis([os.path.join(SPECPATH, "launch.py")], pathex=[ROOT], datas=datas,
-             hiddenimports=collect_submodules("psptool") + ["anthropic"],
+             hiddenimports=collect_submodules("psptool") + ["anthropic", "certifi"],
              excludes=["tkinter"] if sys.platform == "darwin" else [])
 pyz = PYZ(a.pure)
 icon = os.path.join(SPECPATH, "icon.icns" if sys.platform == "darwin" else "icon.ico")

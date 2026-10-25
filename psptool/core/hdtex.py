@@ -78,7 +78,7 @@ def tools() -> List[Dict]:
 
 def install(folder: str, log=print, progress=None):
     """Download one upscaler for this system into TOOLS/<folder>."""
-    import urllib.request
+    from . import net
     system = {"win32": "windows", "darwin": "macos"}.get(sys.platform, "ubuntu")
     name, url = DOWNLOADS[folder]
     url = url % system
@@ -89,7 +89,7 @@ def install(folder: str, log=print, progress=None):
     with tempfile.TemporaryDirectory() as tmp:
         zp = os.path.join(tmp, "a.zip")
         digest = hashlib.sha256()
-        with urllib.request.urlopen(url, timeout=60) as r, open(zp, "wb") as f:
+        with net.urlopen(url, timeout=60) as r, open(zp, "wb") as f:
             total = int(r.headers.get("Content-Length") or 0)
             done = 0
             while True:
