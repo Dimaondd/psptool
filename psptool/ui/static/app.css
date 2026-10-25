@@ -68,6 +68,7 @@
   --side-warm: rgba(240, 120, 40, .5);     /* what shows through the sidebar */
   --side-cool: rgba(70, 90, 255, .42);
   --side-glass: rgba(24, 24, 30, .3);
+  --bar-bg: rgba(24, 24, 30, .66);
   --glow-cool: rgba(80, 110, 255, .14);
 }
 
@@ -755,6 +756,8 @@ body.login { display: flex; align-items: center; justify-content: center; paddin
   #tabbar button:active { transform: scale(.92); }
   #tabbar button.on { color: var(--accent); }
   #tabbar button { position: relative; z-index: 1; touch-action: none; }
+  /* a denser glass than the rest: text sliding under it must not be readable */
+  #tabbar { --glass-bg: var(--bar-bg); --glass-blur: blur(44px) saturate(200%) brightness(1.04); }
   #tabbar > .lens { position: absolute; z-index: 0; top: 5px; bottom: 5px; left: 0; border-radius: 26px; pointer-events: none;
                     background: var(--sel); transition: scale .35s var(--spring), background-color .2s; }
   /* held: the lens lifts and brightens under the finger, like iOS 26 */
@@ -881,7 +884,7 @@ body.login { display: flex; align-items: center; justify-content: center; paddin
   --log-bg: rgba(0, 0, 0, .04); --scrim: rgba(0, 0, 0, .25);
   --checker-a: #e5e5ea; --checker-b: #f7f7f9;
   --glow-warm: rgba(240, 137, 58, .16); --glow-cool: rgba(80, 110, 255, .1);
-  --side-glass: rgba(255, 255, 255, .42);
+  --side-glass: rgba(255, 255, 255, .42); --bar-bg: rgba(250, 250, 252, .74);
   --wall-hi: 38%; --wall-mid: 16%; --wall-lo: 12%; --wall-tint: 10%; --wave-alpha: .9;
   --on-positive: #ffffff;
 }
@@ -904,7 +907,7 @@ body.login { display: flex; align-items: center; justify-content: center; paddin
   --log-bg: rgba(0, 0, 0, .04); --scrim: rgba(0, 0, 0, .25);
   --checker-a: #e5e5ea; --checker-b: #f7f7f9;
   --glow-warm: rgba(240, 137, 58, .16); --glow-cool: rgba(80, 110, 255, .1);
-  --side-glass: rgba(255, 255, 255, .42);
+  --side-glass: rgba(255, 255, 255, .42); --bar-bg: rgba(250, 250, 252, .74);
   --wall-hi: 38%; --wall-mid: 16%; --wall-lo: 12%; --wall-tint: 10%; --wave-alpha: .9;
   --on-positive: #ffffff;
   }

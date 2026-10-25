@@ -510,6 +510,33 @@ class App:
 TAG_RX = re.compile(r"\[[#0-9a-fA-F]+\]")
 
 
+class Fails:
+    """Failed logins per address: after `limit` within `window` seconds the
+    address waits `window` seconds."""
+    def __init__(self, limit=8, window=600):
+        self.limit, self.window, self.lock, self.seen = limit, window, threading.Lock(), {}
+
+    def _recent(self, ip):
+        now = time.time()
+        self.seen[ip] = [t for t in self.seen.get(ip, []) if now - t < self.window]
+        return self.seen[ip]
+
+    def locked(self, ip) -> bool:
+        with self.lock:
+            return len(self._recent(ip)) >= self.limit
+
+    def add(self, ip):
+        with self.lock:
+            self._recent(ip).append(time.time())
+
+    def clear(self, ip):
+        with self.lock:
+            self.seen.pop(ip, None)
+
+
+LOGIN_FAILS = Fails()
+
+
 class Handler(BaseHTTPRequestHandler):
     app: App = None
 
@@ -559,10 +586,15 @@ class Handler(BaseHTTPRequestHandler):
         return ""
 
     def _login(self):
+        ip = self.client_address[0]
+        if LOGIN_FAILS.locked(ip):
+            return self._send(429, {"error": "Слишком много попыток, подождите несколько минут"})
         tok = remote.login(remote.load(), (self._body().get("password") or ""))
         if not tok:
+            LOGIN_FAILS.add(ip)
             time.sleep(1)  # slows down guessing
             return self._send(403, {"error": "Неверный пароль"})
+        LOGIN_FAILS.clear(ip)
         body = b'{"ok": true}'
         self.send_response(200)
         self.send_header("Content-Type", "application/json")
@@ -571,9 +603,29 @@ class Handler(BaseHTTPRequestHandler):
         self.end_headers()
         self.wfile.write(body)
 
+    def _foreign(self, method) -> str:
+        """Why a request must be refused, or "". The server trusts this
+        computer without a password, so it must not be reachable through a
+        web page: a page on another site (its Origin) must not drive it
+        (CSRF), and a site whose name resolves to 127.0.0.1 (its Host) must
+        not read it (DNS rebinding)."""
+        host = (self.headers.get("Host") or "").strip().lower()
+        origin = (self.headers.get("Origin") or "").strip().lower()
+        if self._local():
+            name = host.rsplit(":", 1)[0] if not host.endswith("]") else host
+            if name not in ("127.0.0.1", "localhost", "[::1]", "::1"):
+                return "host"
+        if origin:
+            if origin == "null" or urlparse(origin).netloc != host:
+                return "origin"
+        return ""
+
     def _route(self, method):
         u = urlparse(self.path)
         q = {k: v[0] for k, v in parse_qs(u.query).items()}
+        bad = self._foreign(method)
+        if bad:
+            return self._send(403, {"error": "forbidden (%s)" % bad})
         # other devices: the password first (login page and its style are open)
         if not self._local() and not remote.allowed(remote.load(), self._token()):
             if u.path == "/api/login" and method == "POST":
@@ -605,7 +657,7 @@ class Handler(BaseHTTPRequestHandler):
     def _static(self, path):
         name = "index.html" if path in ("/", "") else path.lstrip("/")
         full = os.path.normpath(os.path.join(STATIC, name))
-        if not full.startswith(STATIC) or not os.path.isfile(full):
+        if os.path.commonpath([full, STATIC]) != STATIC or not os.path.isfile(full):
             return self._send(404, b"not found", "text/plain")
         with open(full, "rb") as f:
             self._send(200, f.read(), TYPES.get(os.path.splitext(full)[1], "application/octet-stream"))
@@ -630,8 +682,8 @@ class Handler(BaseHTTPRequestHandler):
                 b = self._body()
                 cfg = remote.load()
                 if b.get("password"):
-                    if len(b["password"]) < 6:
-                        raise ValueError("пароль: не короче 6 символов")
+                    if len(b["password"]) < 8:
+                        raise ValueError("пароль: не короче 8 символов")
                     remote.set_password(cfg, b["password"])
                 if "on" in b:
                     if b["on"] and not remote.has_password(cfg):
@@ -736,10 +788,6 @@ class Handler(BaseHTTPRequestHandler):
             meta = g.project.meta
             if method == "PUT":
                 b = self._body()
-                if "emulator" in b:
-                    cfg = playtest.load()
-                    cfg["emulator"] = b["emulator"]
-                    playtest.save(cfg)
                 for k in ("state", "probe_slots"):
                     if k in b:
                         meta[k] = b[k]

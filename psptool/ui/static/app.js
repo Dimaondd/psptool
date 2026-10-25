@@ -500,7 +500,7 @@ async function renderOcr(slot) {
 // access from the phone / other computers: only set up on this computer
 async function renderRemote(slot) {
   const r = await api("remote");
-  const pw = h("input", { type: "password", placeholder: r.has_password ? L("задан, введите новый чтобы сменить") : L("не короче 6 символов"), autocomplete: "new-password" });
+  const pw = h("input", { type: "password", placeholder: r.has_password ? L("задан, введите новый чтобы сменить") : L("не короче 8 символов"), autocomplete: "new-password" });
   const msg = h("span", { class: "status" });
   const put = async body => {
     msg.textContent = ""; msg.className = "status";
@@ -514,7 +514,8 @@ async function renderRemote(slot) {
     : !ts.running ? L("установлен, но не подключён: откройте Tailscale и войдите")
     : L("подключён") + (ts.name ? " · " + ts.name : "");
   const links = r.addresses.length ? h("div", { class: "addrs" }, ...r.addresses.map(a =>
-    h("div", {}, h("span", { class: "muted small" }, a.kind === "tailscale" ? "Tailscale" : "Wi-Fi"), h("code", {}, a.url))))
+    h("div", {}, h("span", { class: "muted small" }, a.kind === "tailscale" ? "Tailscale" : "Wi-Fi"), h("code", {}, a.url),
+      a.kind === "tailscale" ? null : h("span", { class: "muted small" }, L("без шифрования: лучше через Tailscale")))))
     : h("span", { class: "muted" }, r.on ? "…" : L("выключено"));
   const sec = section(L("Доступ с других устройств"), form([
     [L("Пароль"), h("div", { class: "pathrow" }, pw, h("button", { type: "button", class: "btn", onclick: () => pw.value && put({ password: pw.value }) }, L("Сохранить")))],

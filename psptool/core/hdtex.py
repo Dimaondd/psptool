@@ -15,6 +15,7 @@ import tempfile
 import zipfile
 from typing import Dict, List, Optional
 
+import hashlib
 import json
 import time
 
@@ -38,7 +39,18 @@ MODELS = {
 DEFAULT_MODEL = "waifu2x"
 
 
-# the upscalers' own releases (MIT / BSD), fetched on request
+# the upscalers' own releases (MIT / BSD), fetched on request; each archive
+# must match its SHA-256 here, so a changed file is never unpacked
+SHA256 = {
+    "realesrgan-ncnn-vulkan-20220424-macos.zip": "e0ad05580abfeb25f8d8fb55aaf7bedf552c375b5b4d9bd3c8d59764d2cc333a",
+    "realesrgan-ncnn-vulkan-20220424-windows.zip": "abc02804e17982a3be33675e4d471e91ea374e65b70167abc09e31acb412802d",
+    "realesrgan-ncnn-vulkan-20220424-ubuntu.zip": "e5aa6eb131234b87c0c51f82b89390f5e3e642b7b70f2b9bbe95b6a285a40c96",
+    "realcugan-ncnn-vulkan-20220728-macos.zip": "0df908cbb98b480f85897221b96d37b0bdb70f82d81b2c7037fe950dd5c0fa33",
+    "realcugan-ncnn-vulkan-20220728-windows.zip": "c6e08d46c11704b1e3a1ada9ddd591cb5005f52f132136c8633ba25def400e01",
+    "realcugan-ncnn-vulkan-20220728-ubuntu.zip": "d745174bd04c0232c89d935b74799311008fda06bea4195f61be5f0f3cc087cb",
+    "waifu2x-ncnn-vulkan-20250915-macos.zip": "a5b58b239eb3aa030db5464f6759637fe412d8c07891a4346ea57f708b514d42",
+    "waifu2x-ncnn-vulkan-20250915-windows.zip": "7425be94b94e4c8f37a1e433ac0e0100c43790e2c37418f4b65d8235adfbdc87",
+}
 DOWNLOADS = {
     "realesrgan": ("Real-ESRGAN", "https://github.com/xinntao/Real-ESRGAN/releases/download/v0.2.5.0/"
                                   "realesrgan-ncnn-vulkan-20220424-%s.zip"),
@@ -70,9 +82,13 @@ def install(folder: str, log=print, progress=None):
     system = {"win32": "windows", "darwin": "macos"}.get(sys.platform, "ubuntu")
     name, url = DOWNLOADS[folder]
     url = url % system
+    want = SHA256.get(url.rsplit("/", 1)[-1])
+    if not want:
+        raise RuntimeError("%s: no build for this system" % name)
     log("%s: %s" % (name, url))
     with tempfile.TemporaryDirectory() as tmp:
         zp = os.path.join(tmp, "a.zip")
+        digest = hashlib.sha256()
         with urllib.request.urlopen(url, timeout=60) as r, open(zp, "wb") as f:
             total = int(r.headers.get("Content-Length") or 0)
             done = 0
@@ -81,9 +97,12 @@ def install(folder: str, log=print, progress=None):
                 if not chunk:
                     break
                 f.write(chunk)
+                digest.update(chunk)
                 done += len(chunk)
                 if progress is not None:
                     progress[:] = [done >> 20, max(1, total >> 20)]
+        if digest.hexdigest() != want:
+            raise RuntimeError("%s: the download does not match its checksum, not installed" % name)
         with zipfile.ZipFile(zp) as z:
             z.extractall(os.path.join(tmp, "x"))
         exe = next(m[2] for m in MODELS.values() if m[1] == folder)
